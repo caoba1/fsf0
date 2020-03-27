@@ -46,17 +46,7 @@ function init() {
 }
 
 /* After, or before the init function is declared, we should set an event listener */
-var canvasContext = canvas.getContext("2d");
-var canvasjj = document.createElement('canvas');
-var ctx = canvasjj.getContext('2d');
-for (var x = 0.5; x < 320; x += 10) {
-ctx.moveTo(x, 0);
-ctx.lineTo(x, 275);
-}
-for (var y = 0.5; y < 160; y += 10) {
-ctx.moveTo(0, y);
-ctx.lineTo(500, y);
-}
+
 
 /*Should it be good practice to have other functionality outside the init? */
 /*------------------------------------------------*/

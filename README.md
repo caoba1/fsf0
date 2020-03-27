@@ -1,2 +1,4 @@
 ## fsf0
-A fundmanetally simple f0 tracker
+A fundamentally simple f0 tracker
+
+[Run live demo](https://sinpantuflas.github.io/fsf0)
