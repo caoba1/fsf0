@@ -59,6 +59,8 @@ function visualize(analyserNode, canvas){
   WIDTH = canvas.width;
   HEIGHT = canvas.height;
 
+  var canvasContext = canvas.getContext("2d");
+
   /* The drawing function has to fetch an animation frame */
   var drawingFunction = function() {
       drawVisual = requestAnimationFrame(drawingFunction);
