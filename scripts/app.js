@@ -9,6 +9,7 @@ const audioElement = document.getElementById("audio-source");
 const canvas = document.querySelector('.visualizer-canvas');
 var axisOffsetX=5;
 var axisOffsetY=10;
+var displayHandle= document.getElementById("display-type").value;
 
 //var intendedWidth = document.querySelector('.container-canvas').clientWidth;
 //canvas.setAttribute('width',intendedWidth);
@@ -64,6 +65,11 @@ function visualize(analyserNode, canvas, offsetX, offsetY){
 
   var canvasContext = canvas.getContext("2d");
 
+  /* A container for the spectral data */
+  var offCanvas = document.createElement('canvas');
+  var spectralContainer = offCanvas.getContext('2d').createImageData(WIDTH, HEIGHT);
+
+  var pointerSpectrum = 0;
   /* The drawing function has to fetch an animation frame */
   var drawingFunction = function() {
     drawVisual = requestAnimationFrame(drawingFunction);
@@ -71,33 +77,73 @@ function visualize(analyserNode, canvas, offsetX, offsetY){
     var bufferLength = analyserNode.frequencyBinCount;
     var dataArray = new Uint8Array(bufferLength);
 
-    canvasContext.clearRect(0, 0, WIDTH, HEIGHT);
+    canvasContext.clearRect(0, 0, canvas.width, canvas.height);
     // SizeOf dataArray should === bufferLength, always
     analyserNode.getByteFrequencyData(dataArray);
+
     //Draw spectrum
-    canvasContext.fillStyle = 'rgb(255, 255, 255)'; //Background
+    canvasContext.fillStyle = 'rgba(255, 255, 255,0)'; //Background
     canvasContext.fillRect(0, 0, WIDTH+offsetX, HEIGHT+offsetY);
-    drawAxis(canvasContext,offsetX,offsetY);
 
-    var barWidth = (WIDTH / bufferLength) * 2.5;
-    var barHeight;
-    var x = 0;
+    if (document.getElementById("display-type").value === "fvst"){
+      // Drawing freq. vs. time.
+      drawAxis(canvasContext,offsetX,offsetY,"t","freq.");
 
-    for(var i = 0; i < bufferLength; i++) {
-      barHeight = dataArray[i];
-      canvasContext.fillStyle = 'rgb(' + (barHeight+100) + ',50,50)';
-      canvasContext.fillRect(x+offsetX,HEIGHT-barHeight/2,barWidth,barHeight/2);
-      x += barWidth + 1;
-    }};
-    drawingFunction();
-  }
+      // Repost the data.
+      var tentativeCounter=0;
+      for (var ii = 0; ii < HEIGHT; ii++){
+        for(var i = 0; i < (WIDTH-1); i++) {
+          spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+1] = spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+5];
+          spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+2] = spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+6];
+          spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+3] = spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+7];
+          spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+4] = spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+8];
+          if (i===(WIDTH-2)){
+            if (dataArray[HEIGHT-ii]>20){
+            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+4]=15;
+            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+5]=80;
+            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+6]=dataArray[HEIGHT-ii]+60;
+            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+7]=255;
+            tentativeCounter += 1;
+          }else{
+            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+4]=255;
+            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+5]=255;
+            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+6]=255;
+            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+7]=0;
+          }
+
+          }
+        }
+        tentativeCounter=0;
+      }
+
+      offCanvas.getContext('2d').putImageData(spectralContainer, 0, 0);
+      canvasContext.drawImage(offCanvas, offsetX, 0, WIDTH+offsetX, HEIGHT+offsetY); //TODO Check scaling
+
+    }else{
+      // Drawing power vs. freq.
+      drawAxis(canvasContext,offsetX,offsetY,,"freq.","|X(f)|");
+
+      var barWidth = (WIDTH / bufferLength) * 2.5;
+      var barHeight;
+      var x = 0;
+
+      for(var i = 0; i < bufferLength; i++) {
+        barHeight = dataArray[i];
+        canvasContext.fillStyle = 'rgb(20,160,' + (barHeight+60) + ')';
+        canvasContext.fillRect(x+offsetX,HEIGHT-barHeight/2,barWidth,barHeight/2);
+        x += barWidth + 1;
+      }
+    }
+  };
+  drawingFunction();
+}
 
 /**
 *@param canvas The canvas element to write the axis
 *@param offsetX Not implemented
 *@param offsetY Not implemented
 **/
-function drawAxis(canvasContext,offsetX,offsetY){
+function drawAxis(canvasContext,offsetX,offsetY,labelX,labelY){
   var axisCanvas = document.createElement('canvas');
   var axisContext = axisCanvas.getContext('2d');
   for (var x = 0.5; x < 320; x += 10) {
@@ -129,8 +175,7 @@ function drawAxis(canvasContext,offsetX,offsetY){
 
   axisContext.font = "10px Poppins";
   axisContext.textAlign = "center";
-  axisContext.fillText("freq.", 148, 150);
-
-  axisContext.fillText("|X(f)|", 20, 20);
+  axisContext.fillText(labelY, 20, 20);
+  axisContext.fillText(labelX, 148, 150);
   canvasContext.drawImage(axisCanvas, 0, 0, 320, 150);
 }
