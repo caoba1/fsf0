@@ -71,7 +71,7 @@ function visualize(analyserNode, canvas, offsetX, offsetY){
     var bufferLength = analyserNode.frequencyBinCount;
     var dataArray = new Uint8Array(bufferLength);
 
-    canvasContext.clearRect(0, 0, WIDTH, HEIGHT);
+    canvasContext.clearRect(0, 0, canvas.width, canvas.height);
     // SizeOf dataArray should === bufferLength, always
     analyserNode.getByteFrequencyData(dataArray);
     //Draw spectrum
@@ -85,7 +85,7 @@ function visualize(analyserNode, canvas, offsetX, offsetY){
 
     for(var i = 0; i < bufferLength; i++) {
       barHeight = dataArray[i];
-      canvasContext.fillStyle = 'rgb(' + (barHeight+100) + ',50,50)';
+      canvasContext.fillStyle = 'rgb(20,160,' + (barHeight+60) + ')';
       canvasContext.fillRect(x+offsetX,HEIGHT-barHeight/2,barWidth,barHeight/2);
       x += barWidth + 1;
     }};
