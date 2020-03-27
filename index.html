@@ -1,26 +1,48 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="utf-8">
-    <link href='https://fonts.googleapis.com/css?family=Poppins|Lacquer' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" href="styles/app.css">
+<head>
+  <meta charset="utf-8">
 
-    <title>Fundamentally a visualizer</title>
+  <link href='https://fonts.googleapis.com/css?family=Poppins|Lacquer' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="styles/app.css">
 
-  </head>
-  <body>
+  <title>Fundamentally a visualizer</title>
 
-  <h1> A fundamentally simple f_0 visualizer</h1>
-  <p> Developed to simply track a melody, or to detect pitch!</p>
+</head>
+<body>
 
-  <div id="container">
-    <canvas></canvas>
+  <div class="header">
+    <h1> A fundamentally simple f_0 visualizer</h1>
+    <p> Developed to simply track a melody, or to detect pitch!</p>
   </div>
-  <div id=container-options>
+  <div class="container">
+    <div class="container-canvas">
+      <canvas class="visualizer-canvas"></canvas>
+    </div>
+    <div class=container-options>
+    </div>
+    <div class=container-source>
+      <audio id="audio-source" controls>
+        <source src="audio/01-AchGottundHerr-violin.wav" type="audio/wav">
+          Your (IE) browser does not support the audio format. Which is crazy, because WAV is a windows format!!
+        </source>
+      </audio>
+    </div>
+  </div>
+
+  <!-- This init button is necessary to init the js calls ... document! -->
+  <div class="alert-box">
+    <div class="alert-button" onclick="this.parentElement.style.display='none'; init();">
+      Click to start!.
+    </div>
+    <p style="position:absolute; bottom:2px; left:2px;">
+      This small app uses HTML5 and JS. It applies the WebAudio API.
+      So if you are using IE, you will probably wont see a thing.
+    </p>
   </div>
 
 
   <script src="https://unpkg.com/popper.js"></script>
   <script src="scripts/app.js"></script>
-  </body>
+</body>
 </html>

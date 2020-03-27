@@ -4,3 +4,56 @@ html {
 	font-size: 12px;
 	background-color: white;
 }
+.container{
+	width:auto;
+}
+.container-canvas {
+	width: 320px;
+	height: 150px;
+}
+
+.alert-box{
+    position:absolute;
+    top:10px;
+    left:10px;
+    bottom:auto;
+    right:auto;
+    height:60%;
+    width:60%;
+
+		filter: alpha(opacity=80);
+		opacity: 0.8;
+		-moz-opacity: 0.8;
+
+		background-color: gray;
+		border: 1px solid #333;">
+}
+.alert-button {
+    background-color: black;
+    color: white;
+    display: block;
+    width: 100px;
+    text-align: center;
+
+		/* Place in center (https://www.w3schools.com/css/css_align.asp)*/
+		margin:auto;
+
+		/*margin-top:30%; /*Relative to the height of parent's height*/
+		/* Make it bounce */
+		-webkit-animation:bounce 1s infinite;
+		-moz-animation:bounce 1s infinite;
+}
+@-moz-keyframes bounce {
+	0% {margin-top:30%;}
+	25% {margin-top:26%;}
+	50% {margin-top:30%;}
+	75% {margin-top:28%;}
+	100% {margin-top:30%;}
+}
+@-webkit-keyframes bounce {
+	0% {margin-top:30%;}
+	25% {margin-top:26%;}
+	50% {margin-top:30%;}
+	75% {margin-top:28%;}
+	100% {margin-top:30%;}
+}
