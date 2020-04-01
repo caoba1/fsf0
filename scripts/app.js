@@ -121,7 +121,7 @@ function visualize(analyserNode, canvas, offsetX, offsetY){
 
     }else{
       // Drawing power vs. freq.
-      drawAxis(canvasContext,offsetX,offsetY,,"freq.","|X(f)|");
+      drawAxis(canvasContext,offsetX,offsetY,"freq.","|X(f)|");
 
       var barWidth = (WIDTH / bufferLength) * 2.5;
       var barHeight;
