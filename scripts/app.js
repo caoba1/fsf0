@@ -1,10 +1,24 @@
 const gapiKey=0;
 const ytapiKey=0;
 
-var micIsSelected = false;
+var micIsSelected = true;
 
 /* I will declare all html elements on this lines */
 const audioElement = document.getElementById("audio-source");
+
+async function getMediaElement(constraints) {
+  let stream = null;
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    /* use the stream */
+  } catch(err) {
+    /* handle the error */
+  }
+  return stream;
+}
+
+
 /* Set up canvas' context and the function handle */
 const canvas = document.querySelector('.visualizer-canvas');
 var axisOffsetX=5;
@@ -17,7 +31,7 @@ var displayHandle= document.getElementById("display-type").value;
 
 
 /* TODO: Change init function to navigator.getUserMedia for mic input */
-function init() {
+async function init() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   const audioContext = new AudioContext();
 
@@ -32,19 +46,29 @@ function init() {
   var gainNode = audioContext.createGain();
   gainNode.gain.value = 1;
 
+  var gainOutNode = audioContext.createGain();
+  gainOutNode.gain.value = 0;
+
+
+
   /* A file source */
   if (!micIsSelected){
     console.log('');
     /* Create a source node */
     //var audioElement = document.getElementById("audio-source");
     var audioSource = audioContext.createMediaElementSource(audioElement);
+    gainOutNode.gain.value = 0;
 
   }else{
-    console.log('Option unavailable');
+    var constraints = {audio: true, video:false}
+    let stream = null;
+    stream = await getMediaElement(constraints);
+    var audioSource = audioContext.createMediaStreamSource(stream);
+    console.log('Starting microphone source');
   }
 
   /* Start! */
-  audioSource.connect(gainNode).connect(analyserNode).connect(audioContext.destination);
+  audioSource.connect(gainNode).connect(analyserNode).connect(gainOutNode).connect(audioContext.destination);
   visualize(analyserNode, canvas, axisOffsetX, axisOffsetY);
 }
 
