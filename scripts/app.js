@@ -1,7 +1,8 @@
 const gapiKey=0;
 const ytapiKey=0;
+var onLoad = true;
 
-var micIsSelected = true;
+var micIsSelected = false;
 
 /* I will declare all html elements on this lines */
 const audioElement = document.getElementById("audio-source");
@@ -32,8 +33,11 @@ var displayHandle= document.getElementById("display-type").value;
 
 /* TODO: Change init function to navigator.getUserMedia for mic input */
 async function init() {
+  //if (onLoad){
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   const audioContext = new AudioContext();
+  //onLoad = false;
+  //}
 
   /* Create an analyser node */
   var analyserNode = audioContext.createAnalyser();
@@ -57,7 +61,7 @@ async function init() {
     /* Create a source node */
     //var audioElement = document.getElementById("audio-source");
     var audioSource = audioContext.createMediaElementSource(audioElement);
-    gainOutNode.gain.value = 0;
+    gainOutNode.gain.value = 1;
 
   }else{
     var constraints = {audio: true, video:false}
@@ -65,6 +69,7 @@ async function init() {
     stream = await getMediaElement(constraints);
     var audioSource = audioContext.createMediaStreamSource(stream);
     console.log('Starting microphone source');
+    gainOutNode.gain.value = 0;
   }
 
   /* Start! */
@@ -203,3 +208,19 @@ function drawAxis(canvasContext,offsetX,offsetY,labelX,labelY){
   axisContext.fillText(labelX, 148, 150);
   canvasContext.drawImage(axisCanvas, 0, 0, 320, 150);
 }
+
+
+//
+var checkbox = document.querySelector("input[name=checkbox]");
+
+checkbox.addEventListener( 'change', function() {
+    if(this.checked) {
+        // Checkbox is checked..
+        micIsSelected = true;
+        init();
+    } else {
+        micIsSelected = false;
+        init();
+        // Checkbox is not checked..
+    }
+});
