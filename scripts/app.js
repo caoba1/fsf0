@@ -1,5 +1,5 @@
-const gapiKey=0;
-const ytapiKey=0;
+const gapiKey = 0;
+const ytapiKey = 0;
 var onLoad = true;
 
 var micIsSelected = false;
@@ -7,13 +7,13 @@ var micIsSelected = false;
 /* I will declare all html elements on this lines */
 const audioElement = document.getElementById("audio-source");
 
+/* Ask for mic permission and pass stream */
 async function getMediaElement(constraints) {
   let stream = null;
-
   try {
     stream = await navigator.mediaDevices.getUserMedia(constraints);
     /* use the stream */
-  } catch(err) {
+  } catch (err) {
     /* handle the error */
   }
   return stream;
@@ -22,13 +22,20 @@ async function getMediaElement(constraints) {
 
 /* Set up canvas' context and the function handle */
 const canvas = document.querySelector('.visualizer-canvas');
-var axisOffsetX=5;
-var axisOffsetY=10;
-var displayHandle= document.getElementById("display-type").value;
+var axisOffsetX = 5;
+var axisOffsetY = 10;
+var displayHandle = document.getElementById("display-type").value;
+
+
 
 //var intendedWidth = document.querySelector('.container-canvas').clientWidth;
 //canvas.setAttribute('width',intendedWidth);
 //var drawVisual;  //requestAnimationFrame(f) var not needed.(?)
+
+/* More information */
+const textBox1 = document.querySelector('#text-box-1');
+const textBox2 = document.querySelector('#text-box-2');
+
 
 
 /* TODO: Change init function to navigator.getUserMedia for mic input */
@@ -53,18 +60,25 @@ async function init() {
   var gainOutNode = audioContext.createGain();
   gainOutNode.gain.value = 0;
 
+  /* Some filters */
+  var filterBP = audioContext.createBiquadFilter();
+  filterBP.type = "bandpass";
+  filterBP.frequency.value = 2000;
+  //Turned off at start
+  filterBP.gain.value = 0;
+  filterBP.g = 0.25;
 
 
   /* A file source */
-  if (!micIsSelected){
+  if (!micIsSelected) {
     console.log('');
     /* Create a source node */
     //var audioElement = document.getElementById("audio-source");
     var audioSource = audioContext.createMediaElementSource(audioElement);
     gainOutNode.gain.value = 1;
 
-  }else{
-    var constraints = {audio: true, video:false}
+  } else {
+    var constraints = { audio: true, video: false }
     let stream = null;
     stream = await getMediaElement(constraints);
     var audioSource = audioContext.createMediaStreamSource(stream);
@@ -73,11 +87,138 @@ async function init() {
   }
 
   /* Start! */
-  audioSource.connect(gainNode).connect(analyserNode).connect(gainOutNode).connect(audioContext.destination);
+  audioSource.connect(gainNode).connect(filterBP).connect(analyserNode).connect(gainOutNode).connect(audioContext.destination);
   visualize(analyserNode, canvas, axisOffsetX, axisOffsetY);
 }
 
 /* After, or before the init function is declared, we should set an event listener */
+
+
+/** Get max value
+*@param dataArray is the data array
+*@param length is the length of the data array
+*@return ix is the index of the max element in the array
+**/
+function getArrayMaxIndex(dataArray, length) {
+  let x = 0;
+  let val = 0;
+  let ix = 0;
+  for (x = 0; x < length; x++) {
+    if (dataArray[x] > val) {
+      val = dataArray[x];
+      ix = x;
+    }
+  }
+  return ix;
+}
+
+/** Fills canvas container with a last column, and shifts the remaining columns to
+* the left. Optionally, set number of group of pixels (pixel width and pixel height)
+*@param fcanvasContainer is offCanvas.getContext('2d').createImageData(WIDTH, HEIGHT); 
+*@param fdataColumn
+*@param fdataLength
+*@param fwidth
+*@param fheight
+*for expected behaviour, fdataLength == fheight
+**/
+function fillCanvasContainer(fcanvasContainer, fdataColumn, fdataLength, fwidth, fheight) {
+  //Implement
+  let h = 0;
+  let w = 0;
+  let d = 0;
+  let coord = 0;
+  let newVal = 0;
+  let colorArray = new Array(4);
+  for (h = 0; h < fheight; h++) {
+    //fwidth - 1, cause last colum to fill is the one with the fdataColumn vector.
+    //(consider branching filling in another function for simplicity)
+    for (w = 0; w < (fwidth - 1); w++) {
+      coord = h * (fwidth * 4) + w * 4;
+      coord_nextx = h * (fwidth * 4) + (w + 1) * 4; //Branch this to a function
+      // Shift one pixel to the left
+      fcanvasContainer.data[coord] = fcanvasContainer.data[coord_nextx];
+      fcanvasContainer.data[coord + 1] = fcanvasContainer.data[coord_nextx + 1];
+      fcanvasContainer.data[coord + 2] = fcanvasContainer.data[coord_nextx + 2];
+      fcanvasContainer.data[coord + 3] = fcanvasContainer.data[coord_nextx + 3];
+      //if (h=0)
+    }//w
+  }//h
+
+  // Add last column. Just adds until fdataLength. 
+  for (d = 0; d < fdataLength; d++) {
+      newVal = fdataColumn[d];
+      coord_lc = d * (fwidth * 4) + (fwidth-1) * 4;
+      colorArray[0] = 1;
+      colorArray[1] = 20;
+      colorArray[2] = 150;
+      if (newVal > 10) {
+        colorArray[3] = (newVal*1.1)+10;
+      } else {
+        colorArray[3] = (newVal*1.1)+10;
+      }
+      fcanvasContainer.data[coord_lc] = colorArray[0];
+      fcanvasContainer.data[coord_lc + 1] = colorArray[1];
+      fcanvasContainer.data[coord_lc + 2] = colorArray[2];
+      fcanvasContainer.data[coord_lc + 3] = colorArray[3];
+    }//last column
+  
+  return fcanvasContainer;
+}
+
+/** Fills data container with an array which is mapped from a bigger or smaller 
+ * array.
+*@param fnewArray is offCanvas.getContext('2d').createImageData(WIDTH, HEIGHT); 
+*@param fnewLength
+*@param fArray
+*@param fLength
+**/
+function fillArrayData(fnewArray, fnewLength, fArray, fLength) {
+  let newData = 0;
+  let d = 0;
+  let numProm = 0;
+  if (fLength > fnewLength) {
+    //Compress
+    numProm = Math.floor(fLength / fnewLength);
+    console.log(":compress:"+numProm+":");
+    for (d = 0; d < fnewLength; d + numProm) {
+
+      //Calculate avg
+      newData = 0;
+      for (i = 0; i < numProm; i++) {
+        newData = newData + fArray[(d*numProm) + i];
+      }
+      newData = newData / numProm;
+
+      //Fill in split
+      fnewArray[d] = newData;
+    }
+  } else {
+    if (fLength < fnewLength) {
+      //Expand
+      numProm = 1 + Math.floor(fnewLength / fLength);
+      //console.log(":expand:"+numProm+":");
+      for (d = 0; d < fLength; d++) {
+        for (i = 0; i < numProm; i++) {
+          fnewArray[(d*numProm) + i] =  fArray[d];
+        }
+      }
+    } else {
+      //sizes are the same
+      return fArray;
+    }
+  }
+  return fnewArray;
+}
+
+/** Flips a data array  **/
+function flipArray(flipDataArray, farrayLength){
+  let thisNewArray = new Array(farrayLength);
+  let n = 0;
+  for(n = 1; n <= farrayLength; n++){
+    thisNewArray[farrayLength-n] = flipDataArray[n-1];
+  }
+  return thisNewArray;
+}
 
 
 /*Should it be good practice to have other functionality outside the init? */
@@ -87,10 +228,14 @@ async function init() {
 *@param analyserNode is the analyser from which to draw the canvas
 *@param canvas is the canvas element
 **/
-function visualize(analyserNode, canvas, offsetX, offsetY){
+function visualize(analyserNode, canvas, offsetX, offsetY) {
 
-  WIDTH = canvas.width-offsetX;
-  HEIGHT = canvas.height-offsetY;
+  WIDTH = parseInt(canvas.width - offsetX);
+  HEIGHT = parseInt(canvas.height - offsetY);
+  var bufferLength = analyserNode.frequencyBinCount;
+  console.log(":"+HEIGHT+":"+WIDTH+":"+bufferLength+":");
+
+  NUMBER_OF_BINS = 32;
 
   var canvasContext = canvas.getContext("2d");
 
@@ -99,11 +244,14 @@ function visualize(analyserNode, canvas, offsetX, offsetY){
   var spectralContainer = offCanvas.getContext('2d').createImageData(WIDTH, HEIGHT);
 
   var pointerSpectrum = 0;
+  var dataLength = HEIGHT;
+  //var dataLength = bufferLength;
+  var newDataArray = new Array(dataLength);
+
   /* The drawing function has to fetch an animation frame */
-  var drawingFunction = function() {
+  var drawingFunction = function () {
     drawVisual = requestAnimationFrame(drawingFunction);
 
-    var bufferLength = analyserNode.frequencyBinCount;
     var dataArray = new Uint8Array(bufferLength);
 
     canvasContext.clearRect(0, 0, canvas.width, canvas.height);
@@ -112,54 +260,54 @@ function visualize(analyserNode, canvas, offsetX, offsetY){
 
     //Draw spectrum
     canvasContext.fillStyle = 'rgba(255, 255, 255,0)'; //Background
-    canvasContext.fillRect(0, 0, WIDTH+offsetX, HEIGHT+offsetY);
+    canvasContext.fillRect(0, 0, WIDTH + offsetX, HEIGHT + offsetY);
 
-    if (document.getElementById("display-type").value === "fvst"){
+    if (document.getElementById("display-type").value === "fvst") {
       // Drawing freq. vs. time.
-      drawAxis(canvasContext,offsetX,offsetY,"t","freq.");
+      drawAxis(canvasContext, offsetX, offsetY, "t", "freq.");
 
       // Repost the data.
-      var tentativeCounter=0;
-      for (var ii = 0; ii < HEIGHT; ii++){
-        for(var i = 0; i < (WIDTH-1); i++) {
-          spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+1] = spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+5];
-          spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+2] = spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+6];
-          spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+3] = spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+7];
-          spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+4] = spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+8];
-          if (i===(WIDTH-2)){
-            if (dataArray[HEIGHT-ii]>20){
-            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+4]=15;
-            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+5]=80;
-            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+6]=dataArray[HEIGHT-ii]+60;
-            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+7]=255;
-            tentativeCounter += 1;
-          }else{
-            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+4]=255;
-            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+5]=255;
-            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+6]=255;
-            spectralContainer.data[(ii-1)*(WIDTH*4)+((i-1)*4)+7]=0;
-          }
+      var temptativeCounter = 0;
 
-          }
-        }
-        tentativeCounter=0;
+      //All data in canvas!
+      newDataArray = fillArrayData(newDataArray, dataLength, dataArray, bufferLength);
+      newDataArray = flipArray(newDataArray, dataLength); //Cause canvas is upside-down. 
+
+      spectralContainer = fillCanvasContainer(spectralContainer, newDataArray, dataLength, WIDTH, HEIGHT);
+      
+      //Draw maxima (255 160 60)
+      let maxFreqIx = getArrayMaxIndex(dataArray, bufferLength);
+      maxFreq = Math.floor(HEIGHT * maxFreqIx / bufferLength);
+      // Draw thick line
+      let coord = (HEIGHT - parseInt(maxFreq)) * (WIDTH * 4) + WIDTH * 4;
+      let thickness = 3;
+      let n=0;
+      for(n=0;n<thickness;n++){
+        coord = (HEIGHT - parseInt(maxFreq) + n - Math.floor(thickness/2)) * (WIDTH * 4) + (WIDTH-1) * 4;
+        spectralContainer.data[coord] = 255;
+        spectralContainer.data[coord+1] = 0;
+        spectralContainer.data[coord+2] = 0;
+        spectralContainer.data[coord+3] = 255;
       }
 
-      offCanvas.getContext('2d').putImageData(spectralContainer, 0, 0);
-      canvasContext.drawImage(offCanvas, offsetX, 0, WIDTH+offsetX, HEIGHT+offsetY); //TODO Check scaling
+      textBox1.value = maxFreq + " bin";
+      textBox2.value = dataArray[maxFreqIx] + " ?";
 
-    }else{
+      offCanvas.getContext('2d').putImageData(spectralContainer, 0, 0);
+      canvasContext.drawImage(offCanvas, offsetX, 0, WIDTH + offsetX, HEIGHT + offsetY); //TODO Check scaling
+      
+    } else {
       // Drawing power vs. freq.
-      drawAxis(canvasContext,offsetX,offsetY,"freq.","|X(f)|");
+      drawAxis(canvasContext, offsetX, offsetY, "freq.", "|X(f)|");
 
       var barWidth = (WIDTH / bufferLength) * 2.5;
       var barHeight;
       var x = 0;
 
-      for(var i = 0; i < bufferLength; i++) {
+      for (var i = 0; i < bufferLength; i++) {
         barHeight = dataArray[i];
-        canvasContext.fillStyle = 'rgb(20,160,' + (barHeight+60) + ')';
-        canvasContext.fillRect(x+offsetX,HEIGHT-barHeight/2,barWidth,barHeight/2);
+        canvasContext.fillStyle = 'rgb(20,160,' + (barHeight + 60) + ')';
+        canvasContext.fillRect(x + offsetX, HEIGHT - barHeight / 2, barWidth, barHeight / 2);
         x += barWidth + 1;
       }
     }
@@ -172,7 +320,7 @@ function visualize(analyserNode, canvas, offsetX, offsetY){
 *@param offsetX Not implemented
 *@param offsetY Not implemented
 **/
-function drawAxis(canvasContext,offsetX,offsetY,labelX,labelY){
+function drawAxis(canvasContext, offsetX, offsetY, labelX, labelY) {
   var axisCanvas = document.createElement('canvas');
   var axisContext = axisCanvas.getContext('2d');
   for (var x = 0.5; x < 320; x += 10) {
@@ -213,14 +361,14 @@ function drawAxis(canvasContext,offsetX,offsetY,labelX,labelY){
 //
 var checkbox = document.querySelector("input[name=checkbox]");
 
-checkbox.addEventListener( 'change', function() {
-    if(this.checked) {
-        // Checkbox is checked..
-        micIsSelected = true;
-        init();
-    } else {
-        micIsSelected = false;
-        init();
-        // Checkbox is not checked..
-    }
+checkbox.addEventListener('change', function () {
+  if (this.checked) {
+    // Checkbox is checked..
+    micIsSelected = true;
+    init();
+  } else {
+    micIsSelected = false;
+    init();
+    // Checkbox is not checked..
+  }
 });
