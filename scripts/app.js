@@ -46,7 +46,7 @@ async function init() {
 
   /* Create an analyser node */
   var analyserNode = audioContext.createAnalyser();
-  analyserNode.fftSize = 256;
+  analyserNode.fftSize = 2048;
   analyserNode.minDecibels = -90;
   analyserNode.maxDecibels = -10;
   analyserNode.smoothingTimeConstant = 0.85;
@@ -177,8 +177,8 @@ function fillArrayData(fnewArray, fnewLength, fArray, fLength) {
   if (fLength > fnewLength) {
     //Compress
     numProm = Math.floor(fLength / fnewLength);
-    console.log(":compress:" + numProm + ":");
-    for (d = 0; d < fnewLength; d + numProm) {
+    //console.log(":compress:" + numProm + ":");
+    for (d = 0; d < fnewLength; d ++) {
 
       //Calculate avg
       newData = 0;
