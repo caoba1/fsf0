@@ -262,8 +262,8 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
     // SizeOf dataArray should === bufferLength, always
     analyserNode.getByteFrequencyData(dataArray);
 
-    //Draw spectrum
-    canvasContext.fillStyle = 'rgba(255, 255, 255,0)'; //Background
+    // Draw spectrum
+    canvasContext.fillStyle = 'rgba(255, 255, 255,0)'; // Background
     canvasContext.fillRect(0, 0, WIDTH + offsetX, HEIGHT + offsetY);
 
     if (document.getElementById("display-type").value === "fvst") {
@@ -295,9 +295,9 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
       let maxFreqIx = getArrayMaxIndex(dataArray, bufferLength);
       
       if(zoomFreqs){
-      maxFreq = Math.floor(HEIGHT * maxFreqIx / binNumber);
+        maxFreq = (HEIGHT * maxFreqIx / binNumber);
       }else{
-      maxFreq = Math.floor(HEIGHT * maxFreqIx / bufferLength);
+        maxFreq = (HEIGHT * maxFreqIx / bufferLength);
       }
       
       // Draw thick line
@@ -305,7 +305,7 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
       let thickness = 3;
       let n = 0;
       for (n = 0; n < thickness; n++) {
-        coord = (HEIGHT - parseInt(maxFreq) + n - Math.floor(thickness / 2)) * (WIDTH * 4) + (WIDTH - 1) * 4;
+        coord = Math.floor((HEIGHT - parseInt(maxFreq) + n - (thickness / 2)) * (WIDTH * 4) + (WIDTH - 1) * 4);
         
         spectralContainer.data[coord] = 255;
         spectralContainer.data[coord + 1] = 0;
