@@ -144,22 +144,22 @@ function fillCanvasContainer(fcanvasContainer, fdataColumn, fdataLength, fwidth,
 
   // Add last column. Just adds until fdataLength. 
   for (d = 0; d < fdataLength; d++) {
-      newVal = fdataColumn[d];
-      coord_lc = d * (fwidth * 4) + (fwidth-1) * 4;
-      colorArray[0] = 1;
-      colorArray[1] = 20;
-      colorArray[2] = 150;
-      if (newVal > 10) {
-        colorArray[3] = (newVal*1.1)+10;
-      } else {
-        colorArray[3] = (newVal*1.1)+10;
-      }
-      fcanvasContainer.data[coord_lc] = colorArray[0];
-      fcanvasContainer.data[coord_lc + 1] = colorArray[1];
-      fcanvasContainer.data[coord_lc + 2] = colorArray[2];
-      fcanvasContainer.data[coord_lc + 3] = colorArray[3];
-    }//last column
-  
+    newVal = fdataColumn[d];
+    coord_lc = d * (fwidth * 4) + (fwidth - 1) * 4;
+    colorArray[0] = 1;
+    colorArray[1] = 20;
+    colorArray[2] = 150;
+    if (newVal > 10) {
+      colorArray[3] = (newVal * 1.1) + 10;
+    } else {
+      colorArray[3] = (newVal * 1.1) + 10;
+    }
+    fcanvasContainer.data[coord_lc] = colorArray[0];
+    fcanvasContainer.data[coord_lc + 1] = colorArray[1];
+    fcanvasContainer.data[coord_lc + 2] = colorArray[2];
+    fcanvasContainer.data[coord_lc + 3] = colorArray[3];
+  }//last column
+
   return fcanvasContainer;
 }
 
@@ -177,13 +177,13 @@ function fillArrayData(fnewArray, fnewLength, fArray, fLength) {
   if (fLength > fnewLength) {
     //Compress
     numProm = Math.floor(fLength / fnewLength);
-    console.log(":compress:"+numProm+":");
+    console.log(":compress:" + numProm + ":");
     for (d = 0; d < fnewLength; d + numProm) {
 
       //Calculate avg
       newData = 0;
       for (i = 0; i < numProm; i++) {
-        newData = newData + fArray[(d*numProm) + i];
+        newData = newData + fArray[(d * numProm) + i];
       }
       newData = newData / numProm;
 
@@ -197,7 +197,7 @@ function fillArrayData(fnewArray, fnewLength, fArray, fLength) {
       //console.log(":expand:"+numProm+":");
       for (d = 0; d < fLength; d++) {
         for (i = 0; i < numProm; i++) {
-          fnewArray[(d*numProm) + i] =  fArray[d];
+          fnewArray[(d * numProm) + i] = fArray[d];
         }
       }
     } else {
@@ -209,11 +209,11 @@ function fillArrayData(fnewArray, fnewLength, fArray, fLength) {
 }
 
 /** Flips a data array  **/
-function flipArray(flipDataArray, farrayLength){
+function flipArray(flipDataArray, farrayLength) {
   let thisNewArray = new Array(farrayLength);
   let n = 0;
-  for(n = 1; n <= farrayLength; n++){
-    thisNewArray[farrayLength-n] = flipDataArray[n-1];
+  for (n = 1; n <= farrayLength; n++) {
+    thisNewArray[farrayLength - n] = flipDataArray[n - 1];
   }
   return thisNewArray;
 }
@@ -231,9 +231,9 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
   WIDTH = parseInt(canvas.width - offsetX);
   HEIGHT = parseInt(canvas.height - offsetY);
   var bufferLength = analyserNode.frequencyBinCount;
-  console.log(":"+HEIGHT+":"+WIDTH+":"+bufferLength+":");
+  console.log(":" + HEIGHT + ":" + WIDTH + ":" + bufferLength + ":");
 
-  NUMBER_OF_BINS = 32;
+  //NUMBER_OF_BINS = 32;
 
   var canvasContext = canvas.getContext("2d");
 
@@ -245,6 +245,12 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
   var dataLength = HEIGHT;
   //var dataLength = bufferLength;
   var newDataArray = new Array(dataLength);
+
+  /* Set visualization parameters */
+  untilFreq = 4000;
+  binNumber = Math.floor((untilFreq * bufferLength) / (44100 / 2));
+  var newFreqVector = new Array(binNumber);
+  var zoomFreqs = true;
 
   /* The drawing function has to fetch an animation frame */
   var drawingFunction = function () {
@@ -267,33 +273,52 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
       // Repost the data.
       var temptativeCounter = 0;
 
-      //All data in canvas!
-      newDataArray = fillArrayData(newDataArray, dataLength, dataArray, bufferLength);
+      //Just show a subset of frequencies
+      if (zoomFreqs) {
+        var s = 0;
+        for (s = 0; s < binNumber; s++) {
+          newFreqVector[s] = dataArray[s];
+        }
+        newDataArray = fillArrayData(newDataArray, dataLength, newFreqVector, binNumber);
+
+      } else {
+        //All data in canvas!
+        newDataArray = fillArrayData(newDataArray, dataLength, dataArray, bufferLength);
+
+      }
+
       newDataArray = flipArray(newDataArray, dataLength); //Because canvas is upside-down. 
 
       spectralContainer = fillCanvasContainer(spectralContainer, newDataArray, dataLength, WIDTH, HEIGHT);
-      
+
       //Draw maxima (255 160 60)
       let maxFreqIx = getArrayMaxIndex(dataArray, bufferLength);
+      
+      if(zoomFreqs){
+      maxFreq = Math.floor(HEIGHT * maxFreqIx / binNumber);
+      }else{
       maxFreq = Math.floor(HEIGHT * maxFreqIx / bufferLength);
+      }
+      
       // Draw thick line
       let coord = (HEIGHT - parseInt(maxFreq)) * (WIDTH * 4) + WIDTH * 4;
       let thickness = 3;
-      let n=0;
-      for(n=0;n<thickness;n++){
-        coord = (HEIGHT - parseInt(maxFreq) + n - Math.floor(thickness/2)) * (WIDTH * 4) + (WIDTH-1) * 4;
+      let n = 0;
+      for (n = 0; n < thickness; n++) {
+        coord = (HEIGHT - parseInt(maxFreq) + n - Math.floor(thickness / 2)) * (WIDTH * 4) + (WIDTH - 1) * 4;
+        
         spectralContainer.data[coord] = 255;
-        spectralContainer.data[coord+1] = 0;
-        spectralContainer.data[coord+2] = 0;
-        spectralContainer.data[coord+3] = 255;
+        spectralContainer.data[coord + 1] = 0;
+        spectralContainer.data[coord + 2] = 0;
+        spectralContainer.data[coord + 3] = 255;
       }
 
-      textBox1.value = "Approx. " + (maxFreqIx / bufferLength)*(44100/2) + " Hz";
+      textBox1.value = "Approx. " + (maxFreqIx / bufferLength) * (44100 / 2) + " Hz";
       textBox2.value = dataArray[maxFreqIx] + " /255 Rel. Pow.";
 
       offCanvas.getContext('2d').putImageData(spectralContainer, 0, 0);
       canvasContext.drawImage(offCanvas, offsetX, 0, WIDTH + offsetX, HEIGHT + offsetY); //TODO Check scaling
-      
+
     } else {
       // Drawing power vs. freq.
       drawAxis(canvasContext, offsetX, offsetY, "freq.", "|X(f)|");
