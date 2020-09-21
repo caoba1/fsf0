@@ -290,8 +290,8 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
         spectralContainer.data[coord+3] = 255;
       }
 
-      textBox1.value = maxFreq + " bin";
-      textBox2.value = dataArray[maxFreqIx] + " ?";
+      textBox1.value = "Approx. " + (maxFreqIx / bufferLength)*(44100/2) + " Hz";
+      textBox2.value = dataArray[maxFreqIx] + " /255 Rel. Pow.";
 
       offCanvas.getContext('2d').putImageData(spectralContainer, 0, 0);
       canvasContext.drawImage(offCanvas, offsetX, 0, WIDTH + offsetX, HEIGHT + offsetY); //TODO Check scaling
