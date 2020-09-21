@@ -2,7 +2,7 @@ const gapiKey = 0;
 const ytapiKey = 0;
 var onLoad = true;
 
-var micIsSelected = false;
+var micIsSelected = true;
 
 /* I will declare all html elements on this lines */
 const audioElement = document.getElementById("audio-source");
@@ -247,7 +247,7 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
   var newDataArray = new Array(dataLength);
 
   /* Set visualization parameters */
-  untilFreq = 4000;
+  untilFreq = 2000;
   binNumber = Math.floor((untilFreq * bufferLength) / (44100 / 2));
   var newFreqVector = new Array(binNumber);
   var zoomFreqs = true;
@@ -305,8 +305,7 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
       let thickness = 3;
       let n = 0;
       for (n = 0; n < thickness; n++) {
-        coord = Math.floor((HEIGHT - parseInt(maxFreq) + n - (thickness / 2)) * (WIDTH * 4) + (WIDTH - 1) * 4);
-        
+        coord = ((HEIGHT - Math.floor(maxFreq) + n - Math.floor(thickness / 2)) * (WIDTH * 4) + (WIDTH - 1) * 4);
         spectralContainer.data[coord] = 255;
         spectralContainer.data[coord + 1] = 0;
         spectralContainer.data[coord + 2] = 0;
@@ -388,9 +387,11 @@ checkbox.addEventListener('change', function () {
   if (this.checked) {
     // Checkbox is checked..
     micIsSelected = true;
+    audioElement.style.display="none";
     init();
   } else {
     micIsSelected = false;
+    audioElement.style.display="block";
     init();
     // Checkbox is not checked..
   }
