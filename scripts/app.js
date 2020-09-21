@@ -271,7 +271,7 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
 
       //All data in canvas!
       newDataArray = fillArrayData(newDataArray, dataLength, dataArray, bufferLength);
-      newDataArray = flipArray(newDataArray, dataLength); //Cause canvas is upside-down. 
+      newDataArray = flipArray(newDataArray, dataLength); //Because canvas is upside-down. 
 
       spectralContainer = fillCanvasContainer(spectralContainer, newDataArray, dataLength, WIDTH, HEIGHT);
       
