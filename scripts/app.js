@@ -26,8 +26,6 @@ var axisOffsetX = 5;
 var axisOffsetY = 10;
 var displayHandle = document.getElementById("display-type").value;
 
-
-
 //var intendedWidth = document.querySelector('.container-canvas').clientWidth;
 //canvas.setAttribute('width',intendedWidth);
 //var drawVisual;  //requestAnimationFrame(f) var not needed.(?)

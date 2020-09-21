@@ -8,6 +8,12 @@ html {
 	width:auto;
 }
 .container-canvas {
+	position: relative;
+	width: auto;
+	height: auto;
+}
+.visualizer-canvas {
+	position: relative;
 	width: 320px;
 	height: 150px;
 }
