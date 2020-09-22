@@ -125,6 +125,8 @@ function getMidiNumber(ffreq) {
   finhz = 12 * Math.log2((ffreq / tuning)) + 69;
   if ((finhz > 0 && finhz < 128) && isFinite(finhz)) {
     return finhz;
+  } else if (finhz >= 128) {
+    return 128;
   } else {
     //@todo: return null?
     return 20;
@@ -176,9 +178,54 @@ function getMidiValues(fdataArray, fnumberBins, nfftby2, fsby2) {
 /** Get chroma vector
  * 
  **/
-function getChromaVec(fdataFrame, fNfft, fsby2){
-  return fdataFrame;
-}
+function getChromaVec(fdataFrame){
+  // Definition 
+  var chromaVector = new Array(12);
+  var n=0, m=0, p=0, q=0;
+  let counts = [];
+  for (n=0; n<12; n++){
+    //Starting in A0
+    let octaveJumps = [];
+    for (m=21; m<=128; m=m+12){
+      octaveJumps.push(n+m);
+    }
+
+    let sum=0, count=0;
+    for (p=0; p<octaveJumps.length; p++){
+      if (octaveJumps[p]-20<fdataFrame.length){
+        if (fdataFrame[octaveJumps[p]-20]>0){
+          count = count + 1;
+        }
+        sum = sum + fdataFrame[octaveJumps[p]-20];
+      }else{
+        sum = sum;
+      }
+    }
+    counts.push(count);
+    if (count>1){
+      chromaVector[n] = sum;
+      //chromaVector[n] = sum / count;
+    }else{
+      chromaVector[n] = sum;
+    }
+    
+ 
+    }
+
+    //Normalize??
+    //var max = Math.max(chromaVector);
+    //for (n=0; n<chromaVector/)...
+
+    //Reduce!?
+    var maxi=Math.max(counts);
+    for (n=0; n<12; n++){
+      if (maxi>0){
+      chromaVector[n] = chromaVector[n]/maxi;
+      }
+    }
+
+    return chromaVector;
+  }
 
 
 /** Get max value
@@ -404,8 +451,9 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
       canvasContext.drawImage(offCanvas, offsetX, 0, WIDTH + offsetX, HEIGHT + offsetY); //TODO Check scaling
 
     } else if (document.getElementById("display-type").value === "cvst") {
-      drawAxis(canvasContext, offsetX, offsetY, "t", "c#");
+      drawAxis(canvasContext, offsetX, offsetY, "t", "");
 
+      /*
       //Just show a subset of frequencies
       if (zoomFreqs) {
         var s = 0;
@@ -417,25 +465,25 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
       }
 
       midiFreqVector = getMidiValues(newFreqVector, binNumber, bufferLength, 22050); //Array init insitde getMidiValues !? --> @todo: Memory issues... 
-
-      // Roll on in chroma
-      chromaVector = getChromaFreq(newFreqVector, bufferLength, 22050);
-      /*
-      var n=0;
-      for(n=0; n<midiFreqVector.length; n++){
-        midiFreqVector[n]=2*n;
-      }
-      console.log(midiFreqVector.length);
       */
 
+      midiFreqVector = getMidiValues(dataArray, bufferLength, bufferLength, 22050); //Array init insitde getMidiValues !? --> @todo: Memory issues... 
+
+      // Roll on in chroma
+      chromaVector = getChromaVec(midiFreqVector);
+
       //For drawing in canvas.
-      newDataArray = fillArrayData(newDataArray, dataLength, midiFreqVector, midiFreqVector.length); //Fill canvas column info
+      //newDataArray = fillArrayData(newDataArray, dataLength, midiFreqVector, midiFreqVector.length); //Fill canvas column info
+      newDataArray = fillArrayData(newDataArray, dataLength, chromaVector, chromaVector.length); //Fill canvas column info
       newDataArray = flipArray(newDataArray, dataLength); //Flip because canvas is upside-down. 
       spectralContainer = fillCanvasContainer(spectralContainer, newDataArray, dataLength, WIDTH, HEIGHT); //Add column to canvas
 
+      drawChromaNotes(canvasContext,offsetX,offsetY);
       //Draw!
       offCanvas.getContext('2d').putImageData(spectralContainer, 0, 0);
       canvasContext.drawImage(offCanvas, offsetX, 0, WIDTH + offsetX, HEIGHT + offsetY); //TODO Check scaling
+
+     
 
     } else {
       // Drawing power vs. freq.
@@ -501,6 +549,37 @@ function drawAxis(canvasContext, offsetX, offsetY, labelX, labelY) {
   axisContext.fillText(labelX, 148, 150);
   canvasContext.drawImage(axisCanvas, 0, 0, 320, 150);
 }
+
+/**
+*@param canvas The canvas element to write the axis
+*@param offsetX Not implemented
+*@param offsetY Not implemented
+**/
+function drawChromaNotes(canvasContext, offsetX, offsetY) {
+  var axisCanvas = document.createElement('canvas');
+  var axisContext = axisCanvas.getContext('2d');
+  axisContext.font = "10px Poppins";
+
+  var gradient = canvasContext.createLinearGradient(0, 0, 20, 0);
+  gradient.addColorStop("0"," magenta");
+  gradient.addColorStop("1", "red");
+  axisContext.fillStyle = gradient;
+
+  axisContext.fillText("A", 7, 139);
+  axisContext.fillText("B", 7, 128);
+  axisContext.fillText("H", 7, 116);
+  axisContext.fillText("C", 7, 103);
+  axisContext.fillText("Db", 7, 92);
+  axisContext.fillText("D", 7, 80);
+  axisContext.fillText("Eb", 7, 67);
+  axisContext.fillText("E", 7, 54);
+  axisContext.fillText("F", 7, 43);
+  axisContext.fillText("Gb", 7, 32);
+  axisContext.fillText("G", 7, 21);
+  axisContext.fillText("Ab", 7, 10);
+  canvasContext.drawImage(axisCanvas, 0, 0, 320, 150);
+}
+
 
 
 //
