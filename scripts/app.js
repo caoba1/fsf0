@@ -173,6 +173,13 @@ function getMidiValues(fdataArray, fnumberBins, nfftby2, fsby2) {
   return midiVector;
 }
 
+/** Get chroma vector
+ * 
+ **/
+function getChromaVec(fdataFrame, fNfft, fsby2){
+  return fdataFrame;
+}
+
 
 /** Get max value
 *@param dataArray is the data array
@@ -411,6 +418,8 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
 
       midiFreqVector = getMidiValues(newFreqVector, binNumber, bufferLength, 22050); //Array init insitde getMidiValues !? --> @todo: Memory issues... 
 
+      // Roll on in chroma
+      chromaVector = getChromaFreq(newFreqVector, bufferLength, 22050);
       /*
       var n=0;
       for(n=0; n<midiFreqVector.length; n++){
