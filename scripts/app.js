@@ -51,7 +51,7 @@ async function init() {
   /* Create an analyser node */
   var analyserNode = audioContext.createAnalyser();
   analyserNode.fftSize = visFreqNFFT.value;
-  analyserNode.minDecibels = -60; //-90
+  analyserNode.minDecibels = -40; //-90
   analyserNode.maxDecibels = 0; //-1ß
   analyserNode.smoothingTimeConstant = 0.85;
 
@@ -64,7 +64,7 @@ async function init() {
 
   /* Create a gain node */
   var gainNode = audioContext.createGain();
-  gainNode.gain.value = 3;
+  gainNode.gain.value = 5;
 
   var gainOutNode = audioContext.createGain();
   gainOutNode.gain.value = 0;
@@ -72,7 +72,7 @@ async function init() {
   /* Some filters */
   var filterBP = audioContext.createBiquadFilter();
   filterBP.type = "bandpass";
-  filterBP.frequency.value = 2000;
+  filterBP.frequency.value = 1000;
   //Turned off at start
   filterBP.gain.value = 0;
   filterBP.g = 0.25;
