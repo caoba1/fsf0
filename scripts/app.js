@@ -30,10 +30,14 @@ var displayHandle = document.getElementById("display-type").value;
 //canvas.setAttribute('width',intendedWidth);
 //var drawVisual;  //requestAnimationFrame(f) var not needed.(?)
 
+/* Visualizer settings */
+const visFreqNFFT = document.querySelector('#vis-freq-nfft');
+const visFreqZoom = document.querySelector('#vis-freq-zoom');
+
 /* More information */
 const textBox1 = document.querySelector('#text-box-1');
 const textBox2 = document.querySelector('#text-box-2');
-
+const textBox3 = document.querySelector('#text-box-3');
 
 
 /* TODO: Change init function to navigator.getUserMedia for mic input */
@@ -46,14 +50,21 @@ async function init() {
 
   /* Create an analyser node */
   var analyserNode = audioContext.createAnalyser();
-  analyserNode.fftSize = 2048;
-  analyserNode.minDecibels = -90;
-  analyserNode.maxDecibels = -10;
+  analyserNode.fftSize = visFreqNFFT.value;
+  analyserNode.minDecibels = -60; //-90
+  analyserNode.maxDecibels = 0; //-1ß
   analyserNode.smoothingTimeConstant = 0.85;
+
+  /* Create a second analyser node */
+  //var analyserNode2 = audioContext.createAnalyser();
+  //analyserNode2.fftSize = visFreqNFFT.value;
+  //analyserNode2.minDecibels = -40; //-90
+  //analyserNode2.maxDecibels = 10; //-1ß
+  //analyserNode2.smoothingTimeConstant = 0.85;
 
   /* Create a gain node */
   var gainNode = audioContext.createGain();
-  gainNode.gain.value = 1;
+  gainNode.gain.value = 3;
 
   var gainOutNode = audioContext.createGain();
   gainOutNode.gain.value = 0;
@@ -84,12 +95,83 @@ async function init() {
     gainOutNode.gain.value = 0;
   }
 
+  //Other function definitions, inside INIT! 
+  //@todo: Bring checkbox inside here.
+  visFreqNFFT.addEventListener('change', function () {
+    analyserNode.fftSize = visFreqNFFT.value;
+  });
+  visFreqZoom.addEventListener('change', function () {
+
+  }); //<-- semicolon or not semicolon, that is the question.
+
   /* Start! */
   audioSource.connect(gainNode).connect(filterBP).connect(analyserNode).connect(gainOutNode).connect(audioContext.destination);
+  //audioSource.connect(gainNode).connect(filterBP).connect(analyserNode2); //Second path.
   visualize(analyserNode, canvas, axisOffsetX, axisOffsetY);
+
+
+
 }
 
 /* After, or before the init function is declared, we should set an event listener */
+/** Get midi value
+*@param ffreq is the frequency
+*@return midi_note_number
+**/
+function getMidiNumber(ffreq) {
+  var finhz = ffreq;
+  tuning = 440
+  // https://newt.phys.unsw.edu.au/jw/notes.html 
+  finhz = 12 * Math.log2((ffreq / tuning)) + 69;
+  if ((finhz > 0 && finhz < 128) && isFinite(finhz)) {
+    return finhz;
+  } else {
+    //@todo: return null?
+    return 20;
+  }
+}
+
+/** Get midi descriptors 
+* returns a variable length array whose length is the number of midi notes
+**/
+function getMidiValues(fdataArray, fnumberBins, nfftby2, fsby2) {
+  //lower bound is [0...20, then 21 -->
+  midiVectorLength = getMidiNumber(fsby2 * (fnumberBins / nfftby2));
+  midiVector = new Array(Math.floor(midiVectorLength) - 20);
+
+  var n = 0;
+  midiVectorIx = new Array(Math.floor(fnumberBins)); //Redundant
+  for (n = 0; n < fnumberBins; n++) {
+    midiVectorIx[n] = Math.floor(getMidiNumber(fsby2 * ((n + 1) / nfftby2)));
+  }
+
+  //Get midi values for the current frequency vector
+  for (n = 0; n < midiVector.length; n++) {
+    //midiVectorLength - 20 is the length of the vector
+    var indexes = [];
+    var i = 0;
+
+    //Get indexes of same midi notes. Case that n=0:<20, n=1:21, n=2:22,...
+    for (i = 0; i < midiVectorIx.length; i++) {
+      if (midiVectorIx[i] === n + 20) {
+        indexes.push(i);
+      }
+    }
+    // Fill in midiVector
+    var sum = 0;
+    if (indexes.length > 0) {
+      sum = 0;
+      for (i = 0; i < indexes.length; i++) {
+        sum = sum + fdataArray[indexes[i]];
+      }
+      midiVector[n] = sum / indexes.length;
+    } else {
+      //No note found
+      midiVector[n] = 0;
+    }
+  }
+  return midiVector;
+}
 
 
 /** Get max value
@@ -178,7 +260,7 @@ function fillArrayData(fnewArray, fnewLength, fArray, fLength) {
     //Compress
     numProm = Math.floor(fLength / fnewLength);
     //console.log(":compress:" + numProm + ":");
-    for (d = 0; d < fnewLength; d ++) {
+    for (d = 0; d < fnewLength; d++) {
 
       //Calculate avg
       newData = 0;
@@ -237,7 +319,7 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
 
   var canvasContext = canvas.getContext("2d");
 
-  /* A container for the spectral data */
+  /* A container for the spectral (2d image) data */
   var offCanvas = document.createElement('canvas');
   var spectralContainer = offCanvas.getContext('2d').createImageData(WIDTH, HEIGHT);
 
@@ -246,32 +328,37 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
   //var dataLength = bufferLength;
   var newDataArray = new Array(dataLength);
 
-  /* Set visualization parameters */
-  untilFreq = 2000;
-  binNumber = Math.floor((untilFreq * bufferLength) / (44100 / 2));
-  var newFreqVector = new Array(binNumber);
-  var zoomFreqs = true;
 
   /* The drawing function has to fetch an animation frame */
   var drawingFunction = function () {
     drawVisual = requestAnimationFrame(drawingFunction);
 
-    var dataArray = new Uint8Array(bufferLength);
+    /* Changing visualization parameters, and only these which are
+ not part of an audio context node */
+    /* Set visualization parameters */
+    untilFreq = visFreqZoom.value;
+    binNumber = Math.floor((untilFreq * bufferLength) / (44100 / 2));
+    var newFreqVector = new Array(binNumber);
+    var zoomFreqs = true;
 
+
+    // Setup canvas
     canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+
     // SizeOf dataArray should === bufferLength, always
+    var dataArray = new Uint8Array(bufferLength);
     analyserNode.getByteFrequencyData(dataArray);
 
-    // Draw spectrum
+    //Get index of maximum frequency
+    let maxFreqIx = getArrayMaxIndex(dataArray, bufferLength);
+
+    // Clear canvas
     canvasContext.fillStyle = 'rgba(255, 255, 255,0)'; // Background
     canvasContext.fillRect(0, 0, WIDTH + offsetX, HEIGHT + offsetY);
 
     if (document.getElementById("display-type").value === "fvst") {
       // Drawing freq. vs. time.
       drawAxis(canvasContext, offsetX, offsetY, "t", "freq.");
-
-      // Repost the data.
-      var temptativeCounter = 0;
 
       //Just show a subset of frequencies
       if (zoomFreqs) {
@@ -280,26 +367,20 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
           newFreqVector[s] = dataArray[s];
         }
         newDataArray = fillArrayData(newDataArray, dataLength, newFreqVector, binNumber);
-
       } else {
         //All data in canvas!
         newDataArray = fillArrayData(newDataArray, dataLength, dataArray, bufferLength);
-
       }
 
       newDataArray = flipArray(newDataArray, dataLength); //Because canvas is upside-down. 
-
       spectralContainer = fillCanvasContainer(spectralContainer, newDataArray, dataLength, WIDTH, HEIGHT);
 
-      //Draw maxima (255 160 60)
-      let maxFreqIx = getArrayMaxIndex(dataArray, bufferLength);
-      
-      if(zoomFreqs){
+      if (zoomFreqs) {
         maxFreq = (HEIGHT * maxFreqIx / binNumber);
-      }else{
+      } else {
         maxFreq = (HEIGHT * maxFreqIx / bufferLength);
       }
-      
+
       // Draw thick line
       let coord = (HEIGHT - parseInt(maxFreq)) * (WIDTH * 4) + WIDTH * 4;
       let thickness = 3;
@@ -312,9 +393,38 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
         spectralContainer.data[coord + 3] = 255;
       }
 
-      textBox1.value = "Approx. " + (maxFreqIx / bufferLength) * (44100 / 2) + " Hz";
-      textBox2.value = dataArray[maxFreqIx] + " /255 Rel. Pow.";
+      offCanvas.getContext('2d').putImageData(spectralContainer, 0, 0);
+      canvasContext.drawImage(offCanvas, offsetX, 0, WIDTH + offsetX, HEIGHT + offsetY); //TODO Check scaling
 
+    } else if (document.getElementById("display-type").value === "cvst") {
+      drawAxis(canvasContext, offsetX, offsetY, "t", "c#");
+
+      //Just show a subset of frequencies
+      if (zoomFreqs) {
+        var s = 0;
+        for (s = 0; s < binNumber; s++) {
+          newFreqVector[s] = dataArray[s];
+        }
+      } else {
+        //All data in canvas! <<Deprecated>>
+      }
+
+      midiFreqVector = getMidiValues(newFreqVector, binNumber, bufferLength, 22050); //Array init insitde getMidiValues !? --> @todo: Memory issues... 
+
+      /*
+      var n=0;
+      for(n=0; n<midiFreqVector.length; n++){
+        midiFreqVector[n]=2*n;
+      }
+      console.log(midiFreqVector.length);
+      */
+
+      //For drawing in canvas.
+      newDataArray = fillArrayData(newDataArray, dataLength, midiFreqVector, midiFreqVector.length); //Fill canvas column info
+      newDataArray = flipArray(newDataArray, dataLength); //Flip because canvas is upside-down. 
+      spectralContainer = fillCanvasContainer(spectralContainer, newDataArray, dataLength, WIDTH, HEIGHT); //Add column to canvas
+
+      //Draw!
       offCanvas.getContext('2d').putImageData(spectralContainer, 0, 0);
       canvasContext.drawImage(offCanvas, offsetX, 0, WIDTH + offsetX, HEIGHT + offsetY); //TODO Check scaling
 
@@ -333,6 +443,10 @@ function visualize(analyserNode, canvas, offsetX, offsetY) {
         x += barWidth + 1;
       }
     }
+    // Fill info boxes
+    textBox1.value = "Approx. " + (maxFreqIx / bufferLength) * (44100 / 2) + " Hz";
+    textBox2.value = dataArray[maxFreqIx] + " /255 Rel. Pow. ([-20 10]dB Rel.)";
+    textBox3.value = "Midi # " + getMidiNumber((maxFreqIx / bufferLength) * (44100 / 2));
   };
   drawingFunction();
 }
@@ -387,11 +501,11 @@ checkbox.addEventListener('change', function () {
   if (this.checked) {
     // Checkbox is checked..
     micIsSelected = true;
-    audioElement.style.display="none";
+    audioElement.style.display = "none";
     init();
   } else {
     micIsSelected = false;
-    audioElement.style.display="block";
+    audioElement.style.display = "block";
     init();
     // Checkbox is not checked..
   }
